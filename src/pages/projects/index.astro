@@ -1,24 +1,28 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseHead from '../../components/BaseHead.astro';
-import CategoryChip from '../../components/CategoryChip.astro';
 import Footer from '../../components/Footer.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import Header from '../../components/Header.astro';
-import { CATEGORIES, SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
-import { getReadingTime } from '../../utils/readingTime';
+import ProjectCategoryChip from '../../components/ProjectCategoryChip.astro';
+import { PROJECT_CATEGORIES, SITE_TITLE } from '../../consts';
 
-const allPosts = (await getCollection('blog'))
+const allProjects = (await getCollection('projects'))
 	.filter((p) => !p.data.draft)
 	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
-const [featured, ...rest] = allPosts;
+const activeProjects = allProjects.filter((p) => p.data.status === 'active');
+
+const statusLabel = { active: 'Active', wip: 'Work in progress', archived: 'Archived' };
 ---
 
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={`Blog · ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<BaseHead
+			title={`Projects · ${SITE_TITLE}`}
+			description="Things I'm building — open-source tools, research prototypes, and experiments."
+		/>
 		<style>
 			.page-hero {
 				background:
@@ -62,6 +66,27 @@ const [featured, ...rest] = allPosts;
 
 			.categories-nav {
 				margin-bottom: 2.5em;
+			}
+			.list-section + .list-section {
+				margin-top: 3em;
+			}
+			.section-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: baseline;
+				margin-bottom: 1.25em;
+				gap: 1em;
+				flex-wrap: wrap;
+			}
+			.section-header h2 {
+				font-size: 1.35rem;
+				margin: 0;
+				color: var(--navy-900);
+			}
+			.section-header .sub {
+				font-size: 0.9rem;
+				color: var(--text-muted);
+				margin: 0;
 			}
 			.categories-nav h2 {
 				font-size: 0.78rem;
@@ -160,8 +185,14 @@ const [featured, ...rest] = allPosts;
 				margin: 0;
 				max-width: 68ch;
 			}
+			.featured .card-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.35em;
+				margin-top: 1em;
+			}
 
-			.posts-grid {
+			.projects-grid {
 				list-style: none;
 				padding: 0;
 				margin: 0;
@@ -169,10 +200,10 @@ const [featured, ...rest] = allPosts;
 				grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 				gap: 1.25em;
 			}
-			.posts-grid li {
+			.projects-grid li {
 				margin: 0;
 			}
-			.posts-grid li a {
+			.projects-grid li a {
 				display: flex;
 				flex-direction: column;
 				height: 100%;
@@ -184,14 +215,14 @@ const [featured, ...rest] = allPosts;
 				transition: transform 0.15s, box-shadow 0.15s;
 				background: var(--white);
 			}
-			.posts-grid li a:hover {
+			.projects-grid li a:hover {
 				transform: translateY(-2px);
 				box-shadow: var(--box-shadow);
 				text-decoration: none;
 			}
 			.meta {
 				display: flex;
-				gap: 0.75em;
+				gap: 0.6em;
 				align-items: center;
 				margin-bottom: 0.55em;
 				flex-wrap: wrap;
@@ -205,6 +236,31 @@ const [featured, ...rest] = allPosts;
 				color: var(--border);
 				font-size: 0.82rem;
 			}
+			.status {
+				display: inline-block;
+				padding: 0.2em 0.7em;
+				font-size: 0.68rem;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				border-radius: 4px;
+				font-weight: 600;
+				font-family: var(--font-sans);
+				border: 1px solid var(--border);
+			}
+			.status.active {
+				background: color-mix(in srgb, var(--accent) 10%, transparent);
+				border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+				color: var(--accent);
+			}
+			.status.wip {
+				background: rgba(245, 158, 11, 0.1);
+				border-color: rgba(245, 158, 11, 0.4);
+				color: #b45309;
+			}
+			.status.archived {
+				background: var(--bg-muted);
+				color: var(--text-muted);
+			}
 			h2.title {
 				font-size: 1.2rem;
 				margin: 0.25em 0 0.4em;
@@ -216,18 +272,12 @@ const [featured, ...rest] = allPosts;
 				margin: 0;
 				font-size: 0.93rem;
 			}
-			.posts-grid .card-tags {
+			.projects-grid .card-tags {
 				display: flex;
 				flex-wrap: wrap;
 				gap: 0.35em;
 				margin-top: auto;
 				padding-top: 1em;
-			}
-			.featured .card-tags {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 0.35em;
-				margin-top: 1em;
 			}
 			.empty {
 				padding: 3em 1em;
@@ -242,10 +292,10 @@ const [featured, ...rest] = allPosts;
 		<Header />
 		<section class="page-hero">
 			<div class="hero-inner">
-				<h1>Blog</h1>
+				<h1>Projects</h1>
 				<p>
-					Notes and research on offensive and defensive security, threat intel, OSINT, and
-					cryptography.
+					Open-source tools, research prototypes, and experiments. A mix of finished work,
+					half-baked ideas, and things that shipped and then got quietly shelved.
 				</p>
 			</div>
 		</section>
@@ -254,15 +304,15 @@ const [featured, ...rest] = allPosts;
 			<section class="categories-nav">
 				<h2>Browse by category</h2>
 				<div class="cats-grid">
-					<a class="cat-card all" href="/blog">
+					<a class="cat-card all" href="/projects">
 						<span class="dot"></span>
-						<span>All posts</span>
+						<span>All projects</span>
 					</a>
 					{
-						Object.entries(CATEGORIES).map(([name, info]) => (
+						Object.entries(PROJECT_CATEGORIES).map(([name, info]) => (
 							<a
 								class="cat-card"
-								href={`/blog/category/${info.slug}/`}
+								href={`/projects/category/${info.slug}/`}
 								style={`--cat-color: ${info.color};`}
 							>
 								<span class="dot" />
@@ -274,53 +324,80 @@ const [featured, ...rest] = allPosts;
 			</section>
 
 			{
-				!featured ? (
-					<div class="empty">No posts yet. Check back soon.</div>
+				allProjects.length === 0 ? (
+					<div class="empty">No projects yet. Check back soon.</div>
 				) : (
 					<>
-						<a class="featured" href={`/blog/${featured.id}/`}>
-							<span class="label">Latest</span>
-							<div class="meta">
-								{featured.data.category && (
-									<CategoryChip category={featured.data.category} linked={false} />
-								)}
-								<span class="date">
-									<FormattedDate date={featured.data.pubDate} />
-								</span>
-								<span class="dot-sep">·</span>
-								<span class="date">{getReadingTime(featured.body)}</span>
-							</div>
-							<h2>{featured.data.title}</h2>
-							<p class="excerpt">{featured.data.description}</p>
-							{featured.data.tags.length > 0 && (
-								<div class="card-tags">
-									{featured.data.tags.map((t) => (
-										<span class="tag">#{t}</span>
-									))}
+						{activeProjects.length > 0 && (
+							<section class="list-section">
+								<div class="section-header">
+									<h2>Active</h2>
+									<p class="sub">
+										{activeProjects.length}{' '}
+										{activeProjects.length === 1 ? 'project' : 'projects'} currently in flight
+									</p>
 								</div>
-							)}
-						</a>
-
-						{rest.length > 0 && (
-							<ul class="posts-grid">
-								{rest.map((post) => (
-									<li>
-										<a href={`/blog/${post.id}/`}>
-											<div class="meta">
-												{post.data.category && (
-													<CategoryChip category={post.data.category} linked={false} />
+								<ul class="projects-grid">
+									{activeProjects.map((project) => (
+										<li>
+											<a href={`/projects/${project.id}/`}>
+												<div class="meta">
+													{project.data.category && (
+														<ProjectCategoryChip
+															category={project.data.category}
+															linked={false}
+														/>
+													)}
+													<span class={`status ${project.data.status}`}>
+														{statusLabel[project.data.status]}
+													</span>
+													<span class="date">
+														<FormattedDate date={project.data.pubDate} />
+													</span>
+												</div>
+												<h2 class="title">{project.data.title}</h2>
+												<p class="excerpt">{project.data.description}</p>
+												{project.data.tags.length > 0 && (
+													<div class="card-tags">
+														{project.data.tags.map((t) => (
+															<span class="tag">#{t}</span>
+														))}
+													</div>
 												)}
-												<span class="date">
-													<FormattedDate date={post.data.pubDate} />
+											</a>
+										</li>
+									))}
+								</ul>
+							</section>
+						)}
+
+						<section class="list-section">
+							<div class="section-header">
+								<h2>All projects</h2>
+							</div>
+							<ul class="projects-grid">
+								{allProjects.map((project) => (
+									<li>
+										<a href={`/projects/${project.id}/`}>
+											<div class="meta">
+												{project.data.category && (
+													<ProjectCategoryChip
+														category={project.data.category}
+														linked={false}
+													/>
+												)}
+												<span class={`status ${project.data.status}`}>
+													{statusLabel[project.data.status]}
 												</span>
-												<span class="dot-sep">·</span>
-												<span class="date">{getReadingTime(post.body)}</span>
+												<span class="date">
+													<FormattedDate date={project.data.pubDate} />
+												</span>
 											</div>
-											<h2 class="title">{post.data.title}</h2>
-											<p class="excerpt">{post.data.description}</p>
-											{post.data.tags.length > 0 && (
+											<h2 class="title">{project.data.title}</h2>
+											<p class="excerpt">{project.data.description}</p>
+											{project.data.tags.length > 0 && (
 												<div class="card-tags">
-													{post.data.tags.map((t) => (
+													{project.data.tags.map((t) => (
 														<span class="tag">#{t}</span>
 													))}
 												</div>
@@ -329,7 +406,7 @@ const [featured, ...rest] = allPosts;
 									</li>
 								))}
 							</ul>
-						)}
+						</section>
 					</>
 				)
 			}

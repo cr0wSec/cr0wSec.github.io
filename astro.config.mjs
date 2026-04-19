@@ -2,34 +2,40 @@
 
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig } from 'astro/config';
+import pagefind from 'astro-pagefind';
+import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import rehypeSlug from 'rehype-slug';
+import { remarkAlert } from 'remark-github-blockquote-alert';
 
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://example.com',
-	integrations: [mdx(), sitemap()],
-	fonts: [
-		{
-			provider: fontProviders.local(),
-			name: 'Atkinson',
-			cssVariable: '--font-atkinson',
-			fallbacks: ['sans-serif'],
-			options: {
-				variants: [
-					{
-						src: ['./src/assets/fonts/atkinson-regular.woff'],
-						weight: 400,
-						style: 'normal',
-						display: 'swap',
-					},
-					{
-						src: ['./src/assets/fonts/atkinson-bold.woff'],
-						weight: 700,
-						style: 'normal',
-						display: 'swap',
-					},
-				],
-			},
+	integrations: [mdx(), sitemap(), pagefind()],
+	markdown: {
+		shikiConfig: {
+			theme: 'github-dark',
+			wrap: true,
 		},
-	],
+		remarkPlugins: [remarkAlert],
+		rehypePlugins: [
+			rehypeSlug,
+			[
+				rehypeAutolinkHeadings,
+				{
+					behavior: 'append',
+					properties: {
+						className: ['heading-anchor'],
+						ariaLabel: 'Link to this section',
+					},
+					content: {
+						type: 'element',
+						tagName: 'span',
+						properties: { className: ['heading-anchor-icon'], ariaHidden: 'true' },
+						children: [{ type: 'text', value: '#' }],
+					},
+				},
+			],
+		],
+	},
 });

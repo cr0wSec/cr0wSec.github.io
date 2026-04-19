@@ -1,20 +1,56 @@
 ---
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 import BlogPost from '../../layouts/BlogPost.astro';
+import { getReadingTime } from '../../utils/readingTime';
 
 export async function getStaticPaths() {
-	const posts = await getCollection('blog');
-	return posts.map((post) => ({
+	const all = (await getCollection('blog'))
+		.filter((p) => !p.data.draft)
+		.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+	return all.map((post, i) => ({
 		params: { slug: post.id },
-		props: post,
+		props: {
+			post,
+			prev: all[i + 1] ?? null,
+			next: all[i - 1] ?? null,
+			siblings: all,
+		},
 	}));
 }
-type Props = CollectionEntry<'blog'>;
+type Props = {
+	post: CollectionEntry<'blog'>;
+	prev: CollectionEntry<'blog'> | null;
+	next: CollectionEntry<'blog'> | null;
+	siblings: CollectionEntry<'blog'>[];
+};
 
-const post = Astro.props;
-const { Content } = await render(post);
+const { post, prev, next, siblings } = Astro.props;
+const { Content, headings } = await render(post);
+const readingTime = getReadingTime(post.body);
+
+const related = siblings
+	.filter((p) => p.id !== post.id)
+	.map((p) => {
+		let score = 0;
+		if (p.data.category && p.data.category === post.data.category) score += 3;
+		const shared = p.data.tags.filter((t) => post.data.tags.includes(t)).length;
+		score += shared;
+		return { post: p, score };
+	})
+	.filter((r) => r.score > 0)
+	.sort((a, b) => b.score - a.score)
+	.slice(0, 3)
+	.map((r) => r.post);
 ---
 
-<BlogPost {...post.data}>
+<BlogPost
+	{...post.data}
+	readingTime={readingTime}
+	headings={headings}
+	prev={prev}
+	next={next}
+	related={related}
+	ogImage={`/og/${post.id}.png`}
+>
 	<Content />
 </BlogPost>

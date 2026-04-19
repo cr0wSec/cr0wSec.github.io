@@ -1,0 +1,351 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import Header from '../components/Header.astro';
+import ProjectCategoryChip from '../components/ProjectCategoryChip.astro';
+import { PROJECT_CATEGORIES, type ProjectCategoryName } from '../consts';
+
+type Props = CollectionEntry<'projects'>['data'];
+
+const { title, description, pubDate, updatedDate, heroImage, status, category, repo, demo, tags } =
+	Astro.props;
+
+const statusLabel = { active: 'Active', wip: 'Work in progress', archived: 'Archived' }[status];
+const catColor =
+	category && category in PROJECT_CATEGORIES
+		? PROJECT_CATEGORIES[category as ProjectCategoryName].color
+		: '#b8763a';
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} image={heroImage} />
+		<style define:vars={{ catColor }}>
+			main {
+				width: 100%;
+				max-width: 100%;
+				margin: 0;
+				padding: 0;
+			}
+			.post-header {
+				background:
+					radial-gradient(circle at 18% 25%, color-mix(in srgb, var(--catColor) 28%, transparent), transparent 45%),
+					linear-gradient(135deg, var(--coal-950) 0%, var(--navy-900) 60%, var(--coal-900) 100%);
+				color: var(--white);
+				padding: 4em 1em 3.5em;
+				border-bottom: 1px solid var(--navy-700);
+				position: relative;
+				overflow: hidden;
+			}
+			.post-header::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background-image:
+					linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+					linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+				background-size: 48px 48px;
+				mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+				pointer-events: none;
+			}
+			.post-header .inner {
+				max-width: var(--wide-width);
+				margin: 0 auto;
+				position: relative;
+				z-index: 1;
+			}
+			.breadcrumbs {
+				display: inline-flex;
+				align-items: center;
+				font-family: var(--font-mono);
+				font-size: 0.76rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: rgba(255, 255, 255, 0.85);
+				margin-bottom: 1.25em;
+				font-weight: 600;
+				line-height: 1;
+			}
+			.breadcrumbs a {
+				color: rgba(255, 255, 255, 0.9);
+				text-decoration: none;
+			}
+			.breadcrumbs a:hover {
+				color: var(--catColor);
+				text-decoration: none;
+			}
+			.breadcrumbs .sep {
+				margin: 0 0.6em;
+				color: rgba(255, 255, 255, 0.6);
+			}
+			.breadcrumbs .current {
+				color: var(--white);
+			}
+			.post-header h1 {
+				color: var(--white);
+				font-size: clamp(1.8rem, 4vw, 2.6rem);
+				margin: 0.35em 0 0.5em;
+				letter-spacing: -0.015em;
+				line-height: 1.15;
+			}
+			.post-header .date {
+				color: rgba(255, 255, 255, 0.72);
+				font-size: 0.9rem;
+				font-family: var(--font-mono);
+			}
+			.meta {
+				display: flex;
+				gap: 0.6em;
+				flex-wrap: wrap;
+				margin-bottom: 0.25em;
+			}
+			.status {
+				display: inline-block;
+				padding: 0.25em 0.75em;
+				font-size: 0.7rem;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--white);
+				border-radius: 4px;
+				font-weight: 600;
+				font-family: var(--font-sans);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+			}
+			.status.active {
+				background: rgba(184, 118, 58, 0.2);
+				border-color: var(--accent);
+				color: var(--accent-hover);
+			}
+			.status.wip {
+				background: rgba(245, 158, 11, 0.15);
+				border-color: #f59e0b;
+				color: #fbbf24;
+			}
+			.status.archived {
+				background: rgba(255, 255, 255, 0.05);
+				color: rgba(255, 255, 255, 0.55);
+			}
+			.links {
+				display: flex;
+				gap: 0.6em;
+				flex-wrap: wrap;
+				margin-top: 1em;
+			}
+			.links a {
+				display: inline-block;
+				padding: 0.5em 1em;
+				border-radius: 6px;
+				border: 1px solid rgba(255, 255, 255, 0.2);
+				color: var(--white);
+				font-size: 0.85rem;
+				font-weight: 600;
+				text-decoration: none;
+				transition: all 0.15s;
+			}
+			.links a:hover {
+				background: rgba(255, 255, 255, 0.08);
+				border-color: var(--accent);
+				color: var(--accent-hover);
+				text-decoration: none;
+			}
+			.hero-image {
+				max-width: 1020px;
+				margin: -2.5em auto 0;
+				padding: 0 1em;
+				position: relative;
+				z-index: 2;
+			}
+			.hero-image :global(img) {
+				display: block;
+				width: 100%;
+				border-radius: 10px;
+				box-shadow: 0 20px 50px rgba(5, 11, 26, 0.35);
+			}
+			.prose {
+				width: 760px;
+				max-width: calc(100% - 2em);
+				margin: 3.5em auto;
+				padding: 0 1em;
+				color: var(--text);
+			}
+			.prose :global(h2) {
+				margin-top: 2em;
+				padding-top: 1em;
+				border-top: 1px solid var(--border);
+			}
+			.prose :global(h3) {
+				margin-top: 1.75em;
+			}
+			.tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4em;
+				margin: 0 0 2em;
+			}
+			.tags a {
+				text-decoration: none;
+			}
+			.tags a:hover .tag {
+				border-color: var(--accent);
+				color: var(--accent);
+			}
+			.back {
+				display: inline-block;
+				margin-top: 2em;
+				font-size: 0.9rem;
+				font-weight: 600;
+			}
+			.prose :global(.code-wrapper) {
+				position: relative;
+			}
+			.prose :global(.code-wrapper button.copy) {
+				position: absolute;
+				top: 0.5em;
+				right: 0.5em;
+				padding: 0.35em 0.7em;
+				font-size: 0.72rem;
+				font-family: var(--font-mono);
+				color: rgba(255, 255, 255, 0.7);
+				background: rgba(255, 255, 255, 0.06);
+				border: 1px solid rgba(255, 255, 255, 0.14);
+				border-radius: 4px;
+				cursor: pointer;
+				opacity: 0;
+				transition: opacity 0.15s, background 0.15s, color 0.15s;
+			}
+			.prose :global(.code-wrapper:hover button.copy),
+			.prose :global(.code-wrapper button.copy:focus-visible) {
+				opacity: 1;
+			}
+			.prose :global(.code-wrapper button.copy:hover) {
+				background: rgba(255, 255, 255, 0.12);
+				color: var(--white);
+			}
+			.prose :global(.code-wrapper button.copy.copied) {
+				color: var(--accent-hover);
+				border-color: var(--accent);
+				opacity: 1;
+			}
+			.prose :global(.heading-anchor) {
+				margin-left: 0.4em;
+				color: var(--border);
+				text-decoration: none;
+				font-weight: 400;
+				opacity: 0;
+				transition: opacity 0.15s, color 0.15s;
+			}
+			.prose :global(h2:hover .heading-anchor),
+			.prose :global(h3:hover .heading-anchor),
+			.prose :global(.heading-anchor:focus-visible) {
+				opacity: 1;
+			}
+			.prose :global(.heading-anchor:hover) {
+				color: var(--accent);
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main id="main-content">
+			<article data-pagefind-body>
+				<div class="post-header">
+					<div class="inner">
+						<nav class="breadcrumbs" aria-label="Breadcrumb">
+							<a href="/">Home</a>
+							<span class="sep">›</span>
+							<a href="/projects">Projects</a>
+							<span class="sep">›</span>
+							<span class="current" aria-current="page">{title}</span>
+						</nav>
+						<div class="meta">
+							{category && <ProjectCategoryChip category={category} variant="dark" />}
+							<span class={`status ${status}`}>{statusLabel}</span>
+						</div>
+						<h1>{title}</h1>
+						<div class="date">
+							<FormattedDate date={pubDate} />
+							{
+								updatedDate && (
+									<div class="last-updated-on">
+										Last updated on <FormattedDate date={updatedDate} />
+									</div>
+								)
+							}
+						</div>
+						{
+							(repo || demo) && (
+								<div class="links">
+									{repo && (
+										<a href={repo} target="_blank" rel="noopener noreferrer">
+											Repository →
+										</a>
+									)}
+									{demo && (
+										<a href={demo} target="_blank" rel="noopener noreferrer">
+											Live demo →
+										</a>
+									)}
+								</div>
+							)
+						}
+					</div>
+				</div>
+				{
+					heroImage && (
+						<div class="hero-image">
+							<Image width={1020} height={510} src={heroImage} alt="" />
+						</div>
+					)
+				}
+				<div class="prose">
+					{
+						tags && tags.length > 0 && (
+							<div class="tags">
+								{tags.map((t) => (
+									<a href={`/projects/tag/${t}/`}>
+										<span class="tag">#{t}</span>
+									</a>
+								))}
+							</div>
+						)
+					}
+					<slot />
+					<a class="back" href="/projects">← Back to all projects</a>
+				</div>
+			</article>
+		</main>
+		<Footer />
+		<script>
+			document.querySelectorAll('.prose pre').forEach((pre) => {
+				if (pre.parentElement?.classList.contains('code-wrapper')) return;
+				const wrapper = document.createElement('div');
+				wrapper.className = 'code-wrapper';
+				pre.parentNode?.insertBefore(wrapper, pre);
+				wrapper.appendChild(pre);
+				const button = document.createElement('button');
+				button.type = 'button';
+				button.className = 'copy';
+				button.textContent = 'Copy';
+				button.setAttribute('aria-label', 'Copy code to clipboard');
+				button.addEventListener('click', async () => {
+					const code = pre.querySelector('code')?.innerText ?? pre.innerText;
+					try {
+						await navigator.clipboard.writeText(code);
+						button.textContent = 'Copied';
+						button.classList.add('copied');
+						setTimeout(() => {
+							button.textContent = 'Copy';
+							button.classList.remove('copied');
+						}, 1500);
+					} catch {
+						button.textContent = 'Failed';
+					}
+				});
+				wrapper.appendChild(button);
+			});
+		</script>
+	</body>
+</html>

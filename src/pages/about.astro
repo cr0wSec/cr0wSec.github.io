@@ -1,63 +1,111 @@
 ---
-import AboutHeroImage from '../assets/blog-placeholder-about.jpg';
-import Layout from '../layouts/BlogPost.astro';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { AUTHOR, SITE_TITLE } from '../consts';
 ---
 
-<Layout
-	title="About Me"
-	description="Lorem ipsum dolor sit amet"
-	pubDate={new Date('August 08 2021')}
-	heroImage={AboutHeroImage}
->
-	<p>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
-		labore et dolore magna aliqua. Vitae ultricies leo integer malesuada nunc vel risus commodo
-		viverra. Adipiscing enim eu turpis egestas pretium. Euismod elementum nisi quis eleifend quam
-		adipiscing. In hac habitasse platea dictumst vestibulum. Sagittis purus sit amet volutpat. Netus
-		et malesuada fames ac turpis egestas. Eget magna fermentum iaculis eu non diam phasellus
-		vestibulum lorem. Varius sit amet mattis vulputate enim. Habitasse platea dictumst quisque
-		sagittis. Integer quis auctor elit sed vulputate mi. Dictumst quisque sagittis purus sit amet.
-	</p>
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`About · ${SITE_TITLE}`} description="About the author and this blog." />
+		<style>
+			.page-hero {
+				background:
+					radial-gradient(circle at 15% 20%, rgba(0, 80, 50, 0.35), transparent 50%),
+					radial-gradient(circle at 85% 80%, rgba(0, 60, 80, 0.4), transparent 50%),
+					linear-gradient(135deg, #0a2618 0%, #0c2d3a 45%, #050d12 100%);
+				color: var(--white);
+				padding: 4em 1em 3.5em;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+				position: relative;
+				overflow: hidden;
+			}
+			.page-hero::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background-image:
+					linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+					linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+				background-size: 48px 48px;
+				mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+				pointer-events: none;
+			}
+			.page-hero .hero-inner {
+				position: relative;
+				max-width: var(--wide-width);
+				margin: 0 auto;
+				z-index: 1;
+			}
+			.page-hero h1 {
+				color: var(--white);
+				font-size: clamp(1.75rem, 4vw, 2.75rem);
+				margin: 0 0 0.4em;
+			}
+			.page-hero p {
+				color: rgba(255, 255, 255, 0.75);
+				margin: 0;
+				max-width: 62ch;
+				font-size: 1.05rem;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<section class="page-hero">
+			<div class="hero-inner">
+				<h1>About</h1>
+				<p>About the author and this blog.</p>
+			</div>
+		</section>
+		<main id="main-content">
+			<h2>Hi, I'm {AUTHOR}.</h2>
+			<p>
+				This site is where I publish notes, experiments, and research on security — both offense and
+				defense, and everything in between. The tone is practical and opinionated. The goal is to
+				share things I wish I had found when I was first working through a problem.
+			</p>
 
-	<p>
-		Morbi tristique senectus et netus. Id semper risus in hendrerit gravida rutrum quisque non
-		tellus. Habitasse platea dictumst quisque sagittis purus sit amet. Tellus molestie nunc non
-		blandit massa. Cursus vitae congue mauris rhoncus. Accumsan tortor posuere ac ut. Fringilla urna
-		porttitor rhoncus dolor. Elit ullamcorper dignissim cras tincidunt lobortis. In cursus turpis
-		massa tincidunt dui ut ornare lectus. Integer feugiat scelerisque varius morbi enim nunc.
-		Bibendum neque egestas congue quisque egestas diam. Cras ornare arcu dui vivamus arcu felis
-		bibendum. Dignissim suspendisse in est ante in nibh mauris. Sed tempus urna et pharetra pharetra
-		massa massa ultricies mi.
-	</p>
+			<h3>What you'll find here</h3>
+			<ul>
+				<li>
+					<strong>Offensive Security</strong> — exploitation, red teaming, tradecraft, and the
+					attacker mindset all the way to shell.
+				</li>
+				<li>
+					<strong>Detection Engineering</strong> — building and tuning detections, test harnesses,
+					telemetry coverage, and the long tail of false positives.
+				</li>
+				<li>
+					<strong>Threat Intelligence</strong> — actor tracking, TTP analysis, and campaign
+					write-ups.
+				</li>
+				<li>
+					<strong>OSINT</strong> — techniques, case studies, tooling, and tradecraft.
+				</li>
+				<li>
+					<strong>Cryptography</strong> — protocol deep-dives, implementation pitfalls, and the
+					places where theory meets production.
+				</li>
+				<li>
+					<strong>Post-Quantum</strong> — NIST finalists, hybrid schemes, and real-world migration
+					strategy.
+				</li>
+			</ul>
 
-	<p>
-		Mollis nunc sed id semper risus in. Convallis a cras semper auctor neque. Diam sit amet nisl
-		suscipit. Lacus viverra vitae congue eu consequat ac felis donec. Egestas integer eget aliquet
-		nibh praesent tristique magna sit amet. Eget magna fermentum iaculis eu non diam. In vitae
-		turpis massa sed elementum. Tristique et egestas quis ipsum suspendisse ultrices. Eget lorem
-		dolor sed viverra ipsum. Vel turpis nunc eget lorem dolor sed viverra. Posuere ac ut consequat
-		semper viverra nam. Laoreet suspendisse interdum consectetur libero id faucibus. Diam phasellus
-		vestibulum lorem sed risus ultricies tristique. Rhoncus dolor purus non enim praesent elementum
-		facilisis. Ultrices tincidunt arcu non sodales neque. Tempus egestas sed sed risus pretium quam
-		vulputate. Viverra suspendisse potenti nullam ac tortor vitae purus faucibus ornare. Fringilla
-		urna porttitor rhoncus dolor purus non. Amet dictum sit amet justo donec enim.
-	</p>
+			<h3>Ground rules</h3>
+			<p>
+				Everything here reflects personal views and is offered for educational purposes only. I write
+				about both offensive and defensive work, plus open-source research. Corrections and pull
+				requests are welcome.
+			</p>
 
-	<p>
-		Mattis ullamcorper velit sed ullamcorper morbi tincidunt. Tortor posuere ac ut consequat semper
-		viverra. Tellus mauris a diam maecenas sed enim ut sem viverra. Venenatis urna cursus eget nunc
-		scelerisque viverra mauris in. Arcu ac tortor dignissim convallis aenean et tortor at. Curabitur
-		gravida arcu ac tortor dignissim convallis aenean et tortor. Egestas tellus rutrum tellus
-		pellentesque eu. Fusce ut placerat orci nulla pellentesque dignissim enim sit amet. Ut enim
-		blandit volutpat maecenas volutpat blandit aliquam etiam. Id donec ultrices tincidunt arcu. Id
-		cursus metus aliquam eleifend mi.
-	</p>
-
-	<p>
-		Tempus quam pellentesque nec nam aliquam sem. Risus at ultrices mi tempus imperdiet. Id porta
-		nibh venenatis cras sed felis eget velit. Ipsum a arcu cursus vitae. Facilisis magna etiam
-		tempor orci eu lobortis elementum. Tincidunt dui ut ornare lectus sit. Quisque non tellus orci
-		ac. Blandit libero volutpat sed cras. Nec tincidunt praesent semper feugiat nibh sed pulvinar
-		proin gravida. Egestas integer eget aliquet nibh praesent tristique magna.
-	</p>
-</Layout>
+			<h3>Get in touch</h3>
+			<p>
+				The fastest way to reach me is via the links in the footer.
+			</p>
+		</main>
+		<Footer />
+	</body>
+</html>

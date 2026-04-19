@@ -1,48 +1,287 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
+import CategoryChip from '../components/CategoryChip.astro';
 import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { AUTHOR, CATEGORIES, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { getReadingTime } from '../utils/readingTime';
+
+const posts = (await getCollection('blog'))
+	.filter((p) => !p.data.draft)
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 4);
+
+const topics = Object.entries(CATEGORIES).map(([name, info]) => ({
+	name,
+	slug: info.slug,
+	color: info.color,
+	desc: info.description,
+}));
 ---
 
 <!doctype html>
 <html lang="en">
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<style>
+			.hero {
+				background:
+					radial-gradient(circle at 15% 20%, rgba(0, 80, 50, 0.35), transparent 50%),
+					radial-gradient(circle at 85% 80%, rgba(0, 60, 80, 0.4), transparent 50%),
+					linear-gradient(135deg, #0a2618 0%, #0c2d3a 45%, #050d12 100%);
+				color: var(--white);
+				padding: 5em 1em 5em;
+				border-bottom: 1px solid var(--navy-700);
+				position: relative;
+				overflow: hidden;
+			}
+			.hero::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background-image:
+					linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+					linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+				background-size: 48px 48px;
+				mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+				pointer-events: none;
+			}
+			.hero-inner {
+				position: relative;
+				max-width: var(--wide-width);
+				margin: 0 auto;
+				z-index: 1;
+			}
+			.eyebrow {
+				color: var(--accent-hover);
+				font-family: var(--font-mono);
+				font-size: 0.82rem;
+				letter-spacing: 0.14em;
+				text-transform: uppercase;
+				margin: 0 0 1em;
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5em;
+			}
+			.eyebrow::before {
+				content: '';
+				width: 8px;
+				height: 8px;
+				background: var(--accent-hover);
+				border-radius: 50%;
+				box-shadow: 0 0 12px var(--accent-hover);
+			}
+			.hero h1 {
+				color: var(--white);
+				font-size: clamp(2rem, 5vw, 3.25rem);
+				max-width: 22ch;
+				margin: 0 0 0.6em;
+				letter-spacing: -0.02em;
+				line-height: 1.1;
+			}
+			.lede {
+				color: rgba(255, 255, 255, 0.78);
+				font-size: 1.125rem;
+				max-width: 60ch;
+				margin: 0 0 2em;
+				line-height: 1.65;
+			}
+			.cta {
+				display: flex;
+				gap: 0.75em;
+				flex-wrap: wrap;
+			}
+			.btn {
+				display: inline-block;
+				padding: 0.75em 1.5em;
+				border-radius: 6px;
+				font-weight: 600;
+				text-decoration: none;
+				font-size: 0.95rem;
+				transition: all 0.15s;
+			}
+			.btn-primary {
+				background: var(--accent);
+				color: var(--white);
+				box-shadow: 0 4px 14px rgba(45, 184, 154, 0.38);
+			}
+			.btn-primary:hover {
+				background: var(--accent-hover);
+				color: var(--white);
+				text-decoration: none;
+				transform: translateY(-1px);
+			}
+			.btn-ghost {
+				background: transparent;
+				color: var(--white);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+			}
+			.btn-ghost:hover {
+				background: rgba(255, 255, 255, 0.08);
+				color: var(--white);
+				text-decoration: none;
+			}
+
+			section.topics,
+			section.latest {
+				margin-bottom: 4em;
+			}
+			.section-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: baseline;
+				margin-bottom: 1.25em;
+			}
+			.section-header h2 {
+				font-size: 1.5rem;
+				margin: 0;
+			}
+			.section-header a {
+				font-size: 0.9rem;
+				font-weight: 600;
+			}
+
+			.topics-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+				gap: 1.1em;
+			}
+			.topic-card {
+				display: block;
+				padding: 1.4em 1.5em;
+				background: var(--bg-muted);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+				color: inherit;
+				text-decoration: none;
+			}
+			.topic-card:hover {
+				transform: translateY(-2px);
+				box-shadow: var(--box-shadow);
+				border-color: var(--cat-color, var(--accent));
+				text-decoration: none;
+			}
+			.topic-card h3 {
+				font-size: 1.05rem;
+				margin: 0 0 0.4em;
+				color: var(--navy-900);
+			}
+			.topic-card p {
+				font-size: 0.92rem;
+				color: var(--text-muted);
+				margin: 0;
+				line-height: 1.55;
+			}
+
+			.post-list {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				gap: 1em;
+			}
+			.post-list li a {
+				display: block;
+				padding: 1.4em 1.5em;
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				color: inherit;
+				text-decoration: none;
+				transition: transform 0.15s, box-shadow 0.15s;
+			}
+			.post-list li a:hover {
+				transform: translateY(-1px);
+				box-shadow: var(--box-shadow);
+				text-decoration: none;
+			}
+			.post-list h3 {
+				font-size: 1.2rem;
+				margin: 0.55em 0 0.25em;
+				color: var(--navy-900);
+			}
+			.post-list .date {
+				color: var(--text-muted);
+				font-size: 0.82rem;
+				margin: 0 0 0.5em;
+				font-family: var(--font-mono);
+			}
+			.post-list .excerpt {
+				color: var(--text-muted);
+				margin: 0;
+				font-size: 0.95rem;
+			}
+
+			@media (max-width: 720px) {
+				.hero {
+					padding: 3.5em 1em 3.5em;
+				}
+			}
+		</style>
 	</head>
 	<body>
 		<Header />
-		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This template
-				serves as a lightweight, minimally-styled starting point for anyone looking to build a personal
-				website, blog, or portfolio with Astro.
-			</p>
-			<p>
-				This template comes with a few integrations already configured in your
-				<code>astro.config.mjs</code> file. You can customize your setup with
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to
-				<a href="https://docs.astro.build/">read the docs</a>
-				or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out
-				<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>
-				by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
+		<section class="hero">
+			<div class="hero-inner">
+<h1>Security belongs to everyone.</h1>
+				<p class="lede">
+					Field notes and research on offense, defense, threat intelligence, OSINT,
+					cryptography, and the road to post-quantum.
+				</p>
+				<div class="cta">
+					<a class="btn btn-primary" href="/blog">Read the blog</a>
+					<a class="btn btn-ghost" href="/about">About</a>
+				</div>
+			</div>
+		</section>
+
+		<main id="main-content" class="wide">
+			<section class="topics">
+				<div class="section-header">
+					<h2>Topics</h2>
+				</div>
+				<div class="topics-grid">
+					{
+						topics.map((t) => (
+							<a
+								class="topic-card"
+								href={`/blog/category/${t.slug}/`}
+								style={`--cat-color: ${t.color};`}
+							>
+								<h3>{t.name}</h3>
+								<p>{t.desc}</p>
+							</a>
+						))
+					}
+				</div>
+			</section>
+
+			<section class="latest">
+				<div class="section-header">
+					<h2>Latest posts</h2>
+					<a href="/blog">View all →</a>
+				</div>
+				<ul class="post-list">
+					{
+						posts.map((post) => (
+							<li>
+								<a href={`/blog/${post.id}/`}>
+									{post.data.category && (
+										<CategoryChip category={post.data.category} linked={false} />
+									)}
+									<h3>{post.data.title}</h3>
+									<p class="date">
+										<FormattedDate date={post.data.pubDate} /> · {getReadingTime(post.body)}
+									</p>
+									<p class="excerpt">{post.data.description}</p>
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</section>
 		</main>
 		<Footer />
 	</body>

@@ -1,0 +1,177 @@
+---
+import { type CollectionEntry, getCollection } from 'astro:content';
+import BaseHead from '../../../components/BaseHead.astro';
+import CategoryChip from '../../../components/CategoryChip.astro';
+import Footer from '../../../components/Footer.astro';
+import FormattedDate from '../../../components/FormattedDate.astro';
+import Header from '../../../components/Header.astro';
+import { SITE_TITLE } from '../../../consts';
+import { getReadingTime } from '../../../utils/readingTime';
+
+export async function getStaticPaths() {
+	const posts = (await getCollection('blog')).filter((p) => !p.data.draft);
+	const tagMap = new Map<string, CollectionEntry<'blog'>[]>();
+	for (const post of posts) {
+		for (const tag of post.data.tags) {
+			if (!tagMap.has(tag)) tagMap.set(tag, []);
+			tagMap.get(tag)!.push(post);
+		}
+	}
+	return Array.from(tagMap.entries()).map(([tag, tagPosts]) => ({
+		params: { tag },
+		props: {
+			tag,
+			posts: tagPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()),
+		},
+	}));
+}
+
+interface Props {
+	tag: string;
+	posts: CollectionEntry<'blog'>[];
+}
+
+const { tag, posts } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`#${tag} · ${SITE_TITLE}`} description={`Posts tagged "${tag}".`} />
+		<style>
+			.tag-hero {
+				background:
+					radial-gradient(circle at 18% 25%, rgba(184, 118, 58, 0.2), transparent 45%),
+					linear-gradient(135deg, var(--coal-950) 0%, var(--navy-900) 60%, var(--coal-900) 100%);
+				color: var(--white);
+				padding: 3em 1em 3.5em;
+				border-bottom: 1px solid var(--navy-700);
+			}
+			.tag-hero .inner {
+				max-width: var(--wide-width);
+				margin: 0 auto;
+			}
+			.breadcrumbs {
+				display: inline-flex;
+				align-items: center;
+				font-family: var(--font-mono);
+				font-size: 0.76rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: rgba(255, 255, 255, 0.85);
+				margin-bottom: 1.25em;
+				font-weight: 600;
+				line-height: 1;
+			}
+			.breadcrumbs a {
+				color: rgba(255, 255, 255, 0.9);
+				text-decoration: none;
+			}
+			.breadcrumbs a:hover {
+				color: var(--accent-hover);
+				text-decoration: none;
+			}
+			.breadcrumbs .sep {
+				margin: 0 0.6em;
+				color: rgba(255, 255, 255, 0.6);
+			}
+			.breadcrumbs .current {
+				color: var(--white);
+			}
+			.tag-hero h1 {
+				color: var(--white);
+				font-size: clamp(1.8rem, 4vw, 2.4rem);
+				margin: 0;
+				font-family: var(--font-mono);
+			}
+			ul.posts {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				gap: 1.25em;
+			}
+			ul.posts li a {
+				display: block;
+				padding: 1.5em 1.75em;
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				color: inherit;
+				text-decoration: none;
+				transition: transform 0.15s, box-shadow 0.15s;
+			}
+			ul.posts li a:hover {
+				transform: translateX(3px);
+				box-shadow: var(--box-shadow);
+			}
+			.meta {
+				display: flex;
+				gap: 0.75em;
+				align-items: center;
+				margin-bottom: 0.5em;
+				flex-wrap: wrap;
+			}
+			.meta .date {
+				color: var(--text-muted);
+				font-size: 0.82rem;
+				font-family: var(--font-mono);
+			}
+			h2.title {
+				font-size: 1.3rem;
+				margin: 0.25em 0 0.4em;
+				color: var(--navy-900);
+			}
+			.excerpt {
+				color: var(--text-muted);
+				margin: 0;
+				font-size: 0.95rem;
+			}
+			.count {
+				color: var(--text-muted);
+				font-family: var(--font-mono);
+				font-size: 0.8rem;
+				margin-bottom: 1.5em;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<section class="tag-hero">
+			<div class="inner">
+				<nav class="breadcrumbs" aria-label="Breadcrumb">
+					<a href="/">Home</a>
+					<span class="sep">›</span>
+					<a href="/blog">Blog</a>
+					<span class="sep">›</span>
+					<span class="current">#{tag}</span>
+				</nav>
+				<h1>#{tag}</h1>
+			</div>
+		</section>
+		<main id="main-content">
+			<p class="count">{posts.length} {posts.length === 1 ? 'post' : 'posts'} tagged</p>
+			<ul class="posts">
+				{
+					posts.map((post) => (
+						<li>
+							<a href={`/blog/${post.id}/`}>
+								<div class="meta">
+									{post.data.category && (
+										<CategoryChip category={post.data.category} linked={false} />
+									)}
+									<span class="date">
+										<FormattedDate date={post.data.pubDate} />
+									</span>
+									<span class="date">· {getReadingTime(post.body)}</span>
+								</div>
+								<h2 class="title">{post.data.title}</h2>
+								<p class="excerpt">{post.data.description}</p>
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>

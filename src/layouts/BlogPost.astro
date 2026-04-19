@@ -1,71 +1,520 @@
 ---
 import { Image } from 'astro:assets';
-import type { CollectionEntry } from 'astro:content';
+import type { CollectionEntry, MarkdownHeading } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
+import CategoryChip from '../components/CategoryChip.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
+import { AUTHOR, CATEGORIES, SITE_TITLE, type CategoryName } from '../consts';
 
-type Props = CollectionEntry<'blog'>['data'];
+type Props = CollectionEntry<'blog'>['data'] & {
+	readingTime?: string;
+	headings?: MarkdownHeading[];
+	prev?: CollectionEntry<'blog'> | null;
+	next?: CollectionEntry<'blog'> | null;
+	related?: CollectionEntry<'blog'>[];
+	ogImage?: string;
+};
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const {
+	title,
+	description,
+	pubDate,
+	updatedDate,
+	heroImage,
+	category,
+	tags = [],
+	cves = [],
+	readingTime,
+	headings = [],
+	prev = null,
+	next = null,
+	related = [],
+	ogImage,
+} = Astro.props;
+
+const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const catColor = category && category in CATEGORIES ? CATEGORIES[category as CategoryName].color : '#2db89a';
+
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@type': 'BlogPosting',
+	headline: title,
+	description,
+	datePublished: pubDate.toISOString(),
+	dateModified: (updatedDate ?? pubDate).toISOString(),
+	author: { '@type': 'Person', name: AUTHOR },
+	publisher: { '@type': 'Organization', name: SITE_TITLE },
+	mainEntityOfPage: { '@type': 'WebPage', '@id': Astro.url.href },
+	...(category ? { articleSection: category } : {}),
+	...(tags.length ? { keywords: tags.join(', ') } : {}),
+};
 ---
 
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} />
-		<style>
+		<BaseHead title={title} description={description} image={heroImage} ogImage={ogImage} />
+		<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+		<style define:vars={{ catColor }}>
 			main {
-				width: calc(100% - 2em);
+				width: 100%;
 				max-width: 100%;
 				margin: 0;
+				padding: 0;
 			}
-			.hero-image {
-				width: 100%;
+			.post-header {
+				background:
+					radial-gradient(circle at 18% 25%, color-mix(in srgb, var(--catColor) 28%, transparent), transparent 45%),
+					linear-gradient(135deg, var(--coal-950) 0%, var(--navy-900) 60%, var(--coal-900) 100%);
+				color: var(--white);
+				padding: 4em 1em 3.5em;
+				border-bottom: 1px solid var(--navy-700);
+				position: relative;
+				overflow: hidden;
 			}
-			.hero-image img {
-				display: block;
+			.post-header::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background-image:
+					linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+					linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+				background-size: 48px 48px;
+				mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+				pointer-events: none;
+			}
+			.post-header .inner {
+				max-width: var(--wide-width);
 				margin: 0 auto;
-				border-radius: 12px;
-				box-shadow: var(--box-shadow);
+				position: relative;
+				z-index: 1;
 			}
-			.prose {
-				width: 720px;
-				max-width: calc(100% - 2em);
-				margin: auto;
-				padding: 1em;
-				color: rgb(var(--gray-dark));
-			}
-			.title {
-				margin-bottom: 1em;
-				padding: 1em 0;
-				text-align: center;
+			.breadcrumbs {
+				display: inline-flex;
+				align-items: center;
+				font-family: var(--font-mono);
+				font-size: 0.76rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: rgba(255, 255, 255, 0.85);
+				margin-bottom: 1.25em;
+				font-weight: 600;
 				line-height: 1;
 			}
-			.title h1 {
-				margin: 0 0 0.5em 0;
+			.breadcrumbs a {
+				color: rgba(255, 255, 255, 0.9);
+				text-decoration: none;
 			}
-			.date {
-				margin-bottom: 0.5em;
-				color: rgb(var(--gray));
+			.breadcrumbs a:hover {
+				color: var(--catColor);
+				text-decoration: none;
+			}
+			.breadcrumbs .sep {
+				margin: 0 0.6em;
+				color: rgba(255, 255, 255, 0.6);
+			}
+			.breadcrumbs .current {
+				color: var(--white);
+			}
+			.post-header h1 {
+				color: var(--white);
+				font-size: clamp(1.8rem, 4vw, 2.6rem);
+				margin: 0.35em 0 0.5em;
+				letter-spacing: -0.015em;
+				line-height: 1.15;
+			}
+			.post-header .date {
+				color: rgba(255, 255, 255, 0.72);
+				font-size: 0.9rem;
+				font-family: var(--font-mono);
+			}
+			.post-header .dot-sep {
+				margin: 0 0.5em;
+				color: rgba(255, 255, 255, 0.4);
 			}
 			.last-updated-on {
 				font-style: italic;
+				margin-top: 0.25em;
+			}
+			.meta {
+				display: flex;
+				gap: 0.6em;
+				flex-wrap: wrap;
+				margin-bottom: 0.25em;
+			}
+			.cves {
+				display: flex;
+				gap: 0.4em;
+				flex-wrap: wrap;
+				margin-top: 1em;
+			}
+			.cves a {
+				display: inline-block;
+				padding: 0.2em 0.7em;
+				font-size: 0.72rem;
+				letter-spacing: 0.04em;
+				color: #fecaca;
+				background: rgba(239, 68, 68, 0.12);
+				border: 1px solid rgba(239, 68, 68, 0.4);
+				border-radius: 4px;
+				font-family: var(--font-mono);
+				text-decoration: none;
+				transition: all 0.15s;
+			}
+			.cves a:hover {
+				background: rgba(239, 68, 68, 0.2);
+				color: var(--white);
+			}
+			.hero-image {
+				max-width: 1020px;
+				margin: -2.5em auto 0;
+				padding: 0 1em;
+				position: relative;
+				z-index: 2;
+			}
+			.hero-image :global(img) {
+				display: block;
+				width: 100%;
+				border-radius: 10px;
+				box-shadow: 0 20px 50px rgba(5, 11, 26, 0.35);
+			}
+
+			.content-wrapper {
+				max-width: 1100px;
+				margin: 3.5em auto;
+				padding: 0 1em;
+				display: grid;
+				grid-template-columns: minmax(0, 760px);
+				justify-content: center;
+				gap: 2.5em;
+			}
+			@media (min-width: 1100px) {
+				.content-wrapper:has(.toc) {
+					grid-template-columns: minmax(0, 760px) 220px;
+				}
+			}
+
+			.toc {
+				order: 2;
+				font-size: 0.85rem;
+			}
+			@media (min-width: 1100px) {
+				.toc {
+					position: sticky;
+					top: 5em;
+					align-self: start;
+					max-height: calc(100vh - 6em);
+					overflow-y: auto;
+				}
+			}
+			.toc h4 {
+				font-size: 0.72rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--text-muted);
+				margin: 0 0 0.75em;
+				font-family: var(--font-sans);
+			}
+			.toc ul {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				border-left: 1px solid var(--border);
+			}
+			.toc li {
+				margin: 0;
+			}
+			.toc a {
+				display: block;
+				padding: 0.3em 0 0.3em 0.9em;
+				color: var(--text-muted);
+				text-decoration: none;
+				line-height: 1.4;
+				border-left: 2px solid transparent;
+				margin-left: -1px;
+				transition: color 0.15s, border-color 0.15s;
+			}
+			.toc a:hover {
+				color: var(--catColor);
+			}
+			.toc a.depth-3 {
+				padding-left: 1.75em;
+				font-size: 0.8rem;
+			}
+			.toc a.active {
+				color: var(--catColor);
+				border-left-color: var(--catColor);
+			}
+
+			.prose {
+				order: 1;
+				min-width: 0;
+				color: var(--text);
+			}
+			.prose :global(h2) {
+				margin-top: 2em;
+				padding-top: 1em;
+				border-top: 1px solid var(--border);
+			}
+			.prose :global(h3) {
+				margin-top: 1.75em;
+			}
+			.ethics {
+				margin: 0 0 2em;
+				padding: 1em 1.25em;
+				background: rgba(236, 72, 153, 0.06);
+				border: 1px solid rgba(236, 72, 153, 0.25);
+				border-left: 4px solid #ec4899;
+				border-radius: 0 6px 6px 0;
+				font-size: 0.9rem;
+				color: var(--text-muted);
+			}
+			.ethics strong {
+				color: #9d174d;
+				text-transform: uppercase;
+				font-size: 0.72rem;
+				letter-spacing: 0.08em;
+				display: block;
+				margin-bottom: 0.3em;
+			}
+			.tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4em;
+				margin: 0 0 2em;
+			}
+			.tags a {
+				text-decoration: none;
+			}
+			.tags a:hover .tag {
+				border-color: var(--accent);
+				color: var(--accent);
+			}
+
+			.related {
+				margin-top: 3em;
+			}
+			.related h3 {
+				font-size: 0.78rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--text-muted);
+				margin: 0 0 1em;
+				font-family: var(--font-sans);
+				font-weight: 600;
+			}
+			.related ul {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				gap: 0.85em;
+			}
+			.related li a {
+				display: block;
+				padding: 1em 1.25em;
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				color: inherit;
+				text-decoration: none;
+				transition: transform 0.15s, box-shadow 0.15s;
+			}
+			.related li a:hover {
+				transform: translateX(3px);
+				box-shadow: var(--box-shadow);
+			}
+			.related h4 {
+				margin: 0 0 0.2em;
+				font-size: 1rem;
+				color: var(--navy-900);
+			}
+			.related p {
+				margin: 0;
+				font-size: 0.85rem;
+				color: var(--text-muted);
+			}
+
+			.prev-next {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 1em;
+				margin-top: 3em;
+				padding-top: 2em;
+				border-top: 1px solid var(--border);
+			}
+			.prev-next a {
+				display: flex;
+				flex-direction: column;
+				gap: 0.3em;
+				padding: 1.1em 1.3em;
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				color: inherit;
+				text-decoration: none;
+				transition: border-color 0.15s, transform 0.15s;
+			}
+			.prev-next a:hover {
+				border-color: var(--accent);
+				text-decoration: none;
+			}
+			.prev-next .dir {
+				font-size: 0.7rem;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				color: var(--text-muted);
+				font-family: var(--font-mono);
+			}
+			.prev-next .ttl {
+				font-weight: 600;
+				color: var(--navy-900);
+				font-size: 0.95rem;
+			}
+			.prev-next .next {
+				text-align: right;
+			}
+			@media (max-width: 640px) {
+				.prev-next {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			.back {
+				display: inline-block;
+				margin-top: 2em;
+				font-size: 0.9rem;
+				font-weight: 600;
+			}
+
+			.prose :global(.code-wrapper) {
+				position: relative;
+			}
+			.prose :global(.code-wrapper button.copy) {
+				position: absolute;
+				top: 0.5em;
+				right: 0.5em;
+				padding: 0.35em 0.7em;
+				font-size: 0.72rem;
+				font-family: var(--font-mono);
+				color: rgba(255, 255, 255, 0.7);
+				background: rgba(255, 255, 255, 0.06);
+				border: 1px solid rgba(255, 255, 255, 0.14);
+				border-radius: 4px;
+				cursor: pointer;
+				opacity: 0;
+				transition: opacity 0.15s, background 0.15s, color 0.15s;
+			}
+			.prose :global(.code-wrapper:hover button.copy),
+			.prose :global(.code-wrapper button.copy:focus-visible) {
+				opacity: 1;
+			}
+			.prose :global(.code-wrapper button.copy:hover) {
+				background: rgba(255, 255, 255, 0.12);
+				color: var(--white);
+			}
+			.prose :global(.code-wrapper button.copy.copied) {
+				color: var(--accent-hover);
+				border-color: var(--accent);
+				opacity: 1;
+			}
+			.prose :global(.heading-anchor) {
+				margin-left: 0.4em;
+				color: var(--border);
+				text-decoration: none;
+				font-weight: 400;
+				opacity: 0;
+				transition: opacity 0.15s, color 0.15s;
+			}
+			.prose :global(h2:hover .heading-anchor),
+			.prose :global(h3:hover .heading-anchor),
+			.prose :global(h4:hover .heading-anchor),
+			.prose :global(.heading-anchor:focus-visible) {
+				opacity: 1;
+			}
+			.prose :global(.heading-anchor:hover) {
+				color: var(--accent);
+			}
+			.prose :global(.markdown-alert) {
+				margin: 1.5em 0;
+				padding: 1em 1.25em;
+				border-left: 4px solid var(--accent);
+				background: var(--bg-muted);
+				border-radius: 0 6px 6px 0;
+			}
+			.prose :global(.markdown-alert-title) {
+				display: flex;
+				align-items: center;
+				gap: 0.5em;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				font-size: 0.78rem;
+				margin-bottom: 0.5em;
+				color: var(--accent);
+			}
+			.prose :global(.markdown-alert p:last-child) {
+				margin-bottom: 0;
+			}
+			.prose :global(.markdown-alert-note) {
+				border-left-color: #3b82f6;
+			}
+			.prose :global(.markdown-alert-note .markdown-alert-title) {
+				color: #3b82f6;
+			}
+			.prose :global(.markdown-alert-tip) {
+				border-left-color: #10b981;
+			}
+			.prose :global(.markdown-alert-tip .markdown-alert-title) {
+				color: #10b981;
+			}
+			.prose :global(.markdown-alert-important) {
+				border-left-color: #8b5cf6;
+			}
+			.prose :global(.markdown-alert-important .markdown-alert-title) {
+				color: #8b5cf6;
+			}
+			.prose :global(.markdown-alert-warning) {
+				border-left-color: #f59e0b;
+			}
+			.prose :global(.markdown-alert-warning .markdown-alert-title) {
+				color: #b45309;
+			}
+			.prose :global(.markdown-alert-caution) {
+				border-left-color: #ef4444;
+			}
+			.prose :global(.markdown-alert-caution .markdown-alert-title) {
+				color: #b91c1c;
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+					animation: none !important;
+				}
 			}
 		</style>
 	</head>
-
 	<body>
 		<Header />
-		<main>
-			<article>
-				<div class="hero-image">
-					{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
-				</div>
-				<div class="prose">
-					<div class="title">
+		<main id="main-content">
+			<article data-pagefind-body>
+				<div class="post-header">
+					<div class="inner">
+						<nav class="breadcrumbs" aria-label="Breadcrumb">
+							<a href="/">Home</a>
+							<span class="sep">›</span>
+							<a href="/blog">Blog</a>
+							<span class="sep">›</span>
+							<span class="current" aria-current="page">{title}</span>
+						</nav>
+						<div class="meta">
+							{category && <CategoryChip category={category} variant="dark" />}
+						</div>
+						<h1>{title}</h1>
 						<div class="date">
 							<FormattedDate date={pubDate} />
+							{readingTime && <span class="dot-sep">·</span>}
+							{readingTime && <span>{readingTime}</span>}
 							{
 								updatedDate && (
 									<div class="last-updated-on">
@@ -74,13 +523,169 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 								)
 							}
 						</div>
-						<h1>{title}</h1>
-						<hr />
+						{
+							cves.length > 0 && (
+								<div class="cves">
+									{cves.map((cve) => (
+										<a
+											href={`https://nvd.nist.gov/vuln/detail/${cve}`}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											{cve}
+										</a>
+									))}
+								</div>
+							)
+						}
 					</div>
-					<slot />
+				</div>
+				{
+					heroImage && (
+						<div class="hero-image">
+							<Image width={1020} height={510} src={heroImage} alt="" />
+						</div>
+					)
+				}
+				<div class="content-wrapper">
+					<div class="prose">
+						{
+							category === 'Offensive Security' && (
+								<aside class="ethics">
+									<strong>For educational and authorized use only</strong>
+									Techniques described here are intended for security research, CTFs, and
+									engagements you are explicitly authorized to perform. Unauthorized access to
+									systems you do not own is illegal in most jurisdictions.
+								</aside>
+							)
+						}
+						{
+							tags && tags.length > 0 && (
+								<div class="tags">
+									{tags.map((t) => (
+										<a href={`/blog/tag/${t}/`}>
+											<span class="tag">#{t}</span>
+										</a>
+									))}
+								</div>
+							)
+						}
+						<slot />
+						{
+							related.length > 0 && (
+								<section class="related">
+									<h3>Related posts</h3>
+									<ul>
+										{related.map((r) => (
+											<li>
+												<a href={`/blog/${r.id}/`}>
+													<h4>{r.data.title}</h4>
+													<p>{r.data.description}</p>
+												</a>
+											</li>
+										))}
+									</ul>
+								</section>
+							)
+						}
+						{
+							(prev || next) && (
+								<nav class="prev-next" aria-label="Post navigation">
+									{prev ? (
+										<a href={`/blog/${prev.id}/`} class="prev">
+											<span class="dir">← Previous</span>
+											<span class="ttl">{prev.data.title}</span>
+										</a>
+									) : (
+										<span />
+									)}
+									{next ? (
+										<a href={`/blog/${next.id}/`} class="next">
+											<span class="dir">Next →</span>
+											<span class="ttl">{next.data.title}</span>
+										</a>
+									) : (
+										<span />
+									)}
+								</nav>
+							)
+						}
+						<a class="back" href="/blog">← Back to all posts</a>
+					</div>
+					{
+						tocHeadings.length > 1 && (
+							<aside class="toc" aria-label="Table of contents">
+								<h4>On this page</h4>
+								<ul>
+									{tocHeadings.map((h) => (
+										<li>
+											<a href={`#${h.slug}`} class={`depth-${h.depth}`} data-toc-link={h.slug}>
+												{h.text}
+											</a>
+										</li>
+									))}
+								</ul>
+							</aside>
+						)
+					}
 				</div>
 			</article>
 		</main>
 		<Footer />
+		<script>
+			document.querySelectorAll('.prose pre').forEach((pre) => {
+				if (pre.parentElement?.classList.contains('code-wrapper')) return;
+				const wrapper = document.createElement('div');
+				wrapper.className = 'code-wrapper';
+				pre.parentNode?.insertBefore(wrapper, pre);
+				wrapper.appendChild(pre);
+				const button = document.createElement('button');
+				button.type = 'button';
+				button.className = 'copy';
+				button.textContent = 'Copy';
+				button.setAttribute('aria-label', 'Copy code to clipboard');
+				button.addEventListener('click', async () => {
+					const code = pre.querySelector('code')?.innerText ?? pre.innerText;
+					try {
+						await navigator.clipboard.writeText(code);
+						button.textContent = 'Copied';
+						button.classList.add('copied');
+						setTimeout(() => {
+							button.textContent = 'Copy';
+							button.classList.remove('copied');
+						}, 1500);
+					} catch {
+						button.textContent = 'Failed';
+					}
+				});
+				wrapper.appendChild(button);
+			});
+
+			const tocLinks = document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]');
+			if (tocLinks.length > 0) {
+				const linkMap = new Map<string, HTMLAnchorElement>();
+				tocLinks.forEach((l) => {
+					const slug = l.dataset.tocLink;
+					if (slug) linkMap.set(slug, l);
+				});
+				const headings = Array.from(linkMap.keys())
+					.map((slug) => document.getElementById(slug))
+					.filter((el): el is HTMLElement => el !== null);
+				const observer = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							const link = linkMap.get(entry.target.id);
+							if (!link) return;
+							if (entry.isIntersecting) {
+								tocLinks.forEach((l) => l.classList.remove('active'));
+								link.classList.add('active');
+							}
+						});
+					},
+					{ rootMargin: '-20% 0px -70% 0px' }
+				);
+				headings.forEach((h) => observer.observe(h));
+			}
+		</script>
 	</body>
 </html>

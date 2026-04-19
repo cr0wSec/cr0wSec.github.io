@@ -1,0 +1,68 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Search · ${SITE_TITLE}`} description="Search across posts and projects." />
+		<link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+		<style>
+			.intro {
+				margin-bottom: 2em;
+				padding-bottom: 1.5em;
+				border-bottom: 1px solid var(--border);
+			}
+			.intro h1 {
+				font-size: 2.25rem;
+				margin: 0 0 0.4em;
+			}
+			.intro p {
+				color: var(--text-muted);
+				margin: 0;
+				max-width: 62ch;
+			}
+			#search {
+				--pagefind-ui-primary: var(--accent);
+				--pagefind-ui-text: var(--text);
+				--pagefind-ui-background: var(--white);
+				--pagefind-ui-border: var(--border);
+				--pagefind-ui-tag: var(--bg-muted);
+				--pagefind-ui-border-width: 1px;
+				--pagefind-ui-border-radius: 6px;
+				--pagefind-ui-font: var(--font-sans);
+			}
+			#search :global(.pagefind-ui__search-input) {
+				font-size: 1rem;
+				padding: 0.75em 1em 0.75em 2.5em;
+			}
+			#search :global(.pagefind-ui__result-title a) {
+				color: var(--navy-900);
+			}
+			#search :global(.pagefind-ui__result-title a:hover) {
+				color: var(--accent);
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main id="main-content">
+			<div class="intro">
+				<h1>Search</h1>
+				<p>Search across all posts and projects. Results update as you type.</p>
+			</div>
+			<div id="search"></div>
+		</main>
+		<Footer />
+		<script is:inline src="/pagefind/pagefind-ui.js"></script>
+		<script is:inline>
+			window.addEventListener('DOMContentLoaded', () => {
+				// @ts-expect-error - pagefind is loaded globally
+				new PagefindUI({ element: '#search', showSubResults: true, resetStyles: false });
+			});
+		</script>
+	</body>
+</html>
